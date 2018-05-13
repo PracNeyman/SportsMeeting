@@ -1,0 +1,44 @@
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.layout.GridPane?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.Pane?>
+<?import javafx.scene.layout.ColumnConstraints?>
+<?import javafx.scene.layout.RowConstraints?>
+<BorderPane fx:controller="UI.Controller" maxHeight="-Infinity"
+            maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="400.0" prefWidth="600.0"
+            xmlns="http://javafx.com/javafx/8.0.40" xmlns:fx="http://javafx.com/fxml/1">
+    <top>
+        <!--<Pane style="color: #24292e;">-->
+            <Label style="-fx-font-family: Arial; -fx-font-size: 30px;" text="运动会" BorderPane.alignment="CENTER" />
+        <!--</Pane>-->
+    </top>
+
+    <left>
+        <GridPane fx:id="func_pane" >
+            <!--<columnConstraints>-->
+                <!--<ColumnConstraints hgrow="SOMETIMES" minWidth="10.0" prefWidth="10.0" />-->
+
+            <!--</columnConstraints>-->
+            <!--<rowConstraints>-->
+                <!--<RowConstraints minHeight="10.0" prefHeight="10.0" vgrow="SOMETIMES" />-->
+            <!--</rowConstraints>-->
+            <children>
+                <Button fx:id="person_info_btn" text="个人信息" prefHeight="50.0" prefWidth="140.0" GridPane.rowIndex="1" onAction="#personInfoFunc"/>
+                <Button fx:id="found_team_btn" text="组建队伍" GridPane.rowIndex="2" prefHeight="50.0" prefWidth="140.0" onAction="#foundTeam"/>
+                <Button fx:id="see_team_btn" text="队伍信息" GridPane.rowIndex="3" prefHeight="50.0" prefWidth="140.0" onAction="#seeTeam"/>
+                <Button fx:id="take_solo_event_btn" text="单人比赛" GridPane.rowIndex="4" prefHeight="50.0" prefWidth="140.0" onAction="#takeSoloEvent"/>
+                <Button fx:id="take_team_event_btn" text="团体比赛" GridPane.rowIndex="5" prefHeight="50.0" prefWidth="140.0" onAction="#takeTeamEvent"/>
+                <Button fx:id="see_score" text="查看比赛成绩" GridPane.rowIndex="6" prefHeight="50.0" prefWidth="140.0" />
+            </children>
+        </GridPane>
+    </left>
+
+    <center>
+        <GridPane fx:id="center_pane" />
+    </center>
+
+</BorderPane>
