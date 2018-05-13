@@ -1,10 +1,8 @@
 package UI;
 
+import DB.DBConnect;
+import Module.Player;
 import com.jfoenix.controls.JFXButton;
-import javafx.beans.property.SimpleStringProperty;
-import javafx.beans.value.ObservableValue;
-import javafx.collections.FXCollections;
-import javafx.collections.ObservableList;
 import javafx.event.ActionEvent;
 import javafx.event.EventHandler;
 import javafx.fxml.FXML;
@@ -15,19 +13,22 @@ import javafx.scene.control.*;
 import javafx.scene.input.MouseEvent;
 import javafx.scene.layout.GridPane;
 import javafx.scene.layout.HBox;
+import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
-import javafx.util.Callback;
 
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import static Action.SelectAction.selectInfoToData;
+import static Action.SelectAction.selectOne;
+
 
 public class Controller {
-    private ObservableList<ObservableList> data;
-    private TableView tableview = new TableView();
+    private TableView tableview;
     private String myID = "0123456789";
+    public static String selectedID = "";
 
     @FXML
     public Button found_team_btn;
@@ -47,49 +48,57 @@ public class Controller {
     public Button person_info_btn;
     @FXML
     public void personInfoFunc(ActionEvent actionEvent) {
-        tableview.getColumns().clear();
-        tableview.getItems().clear();
-        selectInfoToData("select * from player where ID = '"+myID+"';");
+        String sql = "select * from player where ID = '"+myID+"';";
+        Player player = new Player();
+        player.setInfo(sql);
+        Label IDLabel = new Label("ID");
+        Label nameLabel = new Label("姓名");
+        Label sexLabel= new Label("性别");
+        Label heightLabel = new Label("身高");
+        Label weightLabel = new Label("体重");
+
+        TextField ID = new TextField(player.getID());
+        ID.setEditable(false);
+        TextField name = new TextField(player.getName());
+        TextField sex = new TextField(player.getSex());
+        TextField height = new TextField(String.valueOf(player.getHeight()));
+        TextField weight = new TextField(String.valueOf(player.getWeight()));
+
+        Button exitBtn = new Button("注销");
+        Button modifyBtn = new Button("修改");
+
+        exitBtn.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+            }
+        });
+
+        modifyBtn.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                player.setHeight(Integer.valueOf(height.getText()));
+                player.setID(ID.getText());
+                player.setName(name.getText());
+                player.setWeight(Integer.valueOf(weight.getText()));
+                player.setSex(sex.getText());
+                player.updateToTable();
+            }
+        });
+
         center_pane.getChildren().clear();
-        center_pane.getChildren().add(tableview);
-    }
-
-
-    public void selectInfoToData(String sql){
-        System.out.println(sql);
-        Connection c ;
-        data = FXCollections.observableArrayList();
-        try {
-            c  =DBConnect.connect();
-//            String sql = "select * from player";
-            ResultSet rs = c.createStatement().executeQuery(sql);
-            for(int i=0 ; i<rs.getMetaData().getColumnCount(); i++){
-                //We are using non property style for making dynamic table
-                final int j = i;
-                TableColumn col = new TableColumn(rs.getMetaData().getColumnName(i+1));
-                col.setCellValueFactory(new Callback<TableColumn.CellDataFeatures<ObservableList,String>,ObservableValue<String>>(){
-                    public ObservableValue<String> call(TableColumn.CellDataFeatures<ObservableList, String> param) {
-                        return new SimpleStringProperty(param.getValue().get(j).toString());
-                    }
-                });
-
-                tableview.getColumns().addAll(col);
-                System.out.println("Column ["+i+"] ");
-            }
-
-            while(rs.next()) {
-                ObservableList<String> row = FXCollections.observableArrayList();
-                for(int i=1 ; i<=rs.getMetaData().getColumnCount(); i++){
-                    //Iterate Column
-                    row.add(rs.getString(i));
-                }
-                data.add(row);
-            }
-            tableview.setItems(data);
-        }catch (Exception e){
-            e.printStackTrace();
-            System.out.println("Error on Building Data");
-        }
+        center_pane.setPadding(new Insets(20,20,20,20));
+        center_pane.add(IDLabel, 0,0);
+        center_pane.add(ID,1,0);
+        center_pane.add(nameLabel,0,1);
+        center_pane.add(name,1,1);
+        center_pane.add(sexLabel,0,2);
+        center_pane.add(sex,1,2);
+        center_pane.add(heightLabel, 0,3);
+        center_pane.add(height,1,3);
+        center_pane.add(weightLabel,0,4);
+        center_pane.add(weight,1,4);
+        center_pane.add(exitBtn,0,6);
+        center_pane.add(modifyBtn,1,6);
     }
 
     public void init(){
@@ -424,33 +433,23 @@ public class Controller {
     }
     @FXML
     public void seeTeam(ActionEvent actionEvent) {
-        tableview.getColumns().clear();
-        tableview.getItems().clear();
+//        tableview.getColumns().clear();
+//        tableview.getItems().clear();
         String sql = "select team.ID as TeamID,team.name as TeamName, player.name as CaptainName from team, player "
-                +"where team.id in (select team.id from play_for where player.id = '"+myID+"');";
-        selectInfoToData(sql);
-        //tableview = new TableView();
+                +"where team.id in (select team.id from play_for where playerID = '"+myID+"') and player.id=team.captionID;";
+        tableview = selectInfoToData(sql);
+
         center_pane.getChildren().clear();
         center_pane.getChildren().add(tableview);
+
+        Label tip = new Label("双击队伍查看详情");
+        center_pane.add(tip,1,0,2,2);
     }
     @FXML
     public void takeTeamEvent(ActionEvent actionEvent) {
     }
 
-    //只返回一个字段，形式为String
-    private String selectOne(String sql){
-        Connection c;
-        try {
-            c = DBConnect.connect();
-            ResultSet rs = c.createStatement().executeQuery(sql);
-            while (rs.next()) {
-                return rs.getString(1);
-            }
-        }catch (SQLException e) {
-            e.printStackTrace();
-        }
-        return "";
-    }
+
 
 
 
