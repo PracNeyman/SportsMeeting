@@ -79,11 +79,18 @@ public class SelectAction {
                 this.setOnMouseClicked(new EventHandler<MouseEvent>() {
                     @Override
                     public void handle(MouseEvent event) {
-                        if(event.getButton().equals(MouseButton.PRIMARY)&&event.getClickCount()==2&&TableRowControl.this.getIndex()<tableview.getItems().size()){
+                        if(event.getButton().equals(MouseButton.PRIMARY)&&TableRowControl.this.getIndex()<tableview.getItems().size()){
                             ObservableList<String> row = (ObservableList<String>)(tableview.getItems().get(TableRowControl.this.getIndex()));
-                            Controller.selectedID = row.get(0);
-                            System.out.println("当前选择的ID是:"+Controller.selectedID);
-
+                            if(sql.contains("select team.ID as TeamID,team.name as TeamName, player.name as CaptainName from team, player ")) {
+                                Controller.setSelectedTeamID(row.get(0));//选择队伍
+                            }
+                            else if(sql.contains("select * from event where type = 'team'")){
+                                Controller.setSelectedTeamEventName(row.get(0));//选择多人项目
+                                System.out.println(Controller.getSelectedTeamEventName());
+                            }
+                            else if(sql.contains("select * from event where type = 'solo'")){
+                                Controller.setSelectedSoloEventName(row.get(0));//选择单人项目
+                            }
                         }
                     }
                 });

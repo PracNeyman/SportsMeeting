@@ -1,5 +1,7 @@
 package UI;
 
+import Action.InsertAction;
+import Action.SelectAction;
 import DB.DBConnect;
 import Module.Player;
 import com.jfoenix.controls.JFXButton;
@@ -16,19 +18,49 @@ import javafx.scene.layout.HBox;
 import javafx.scene.layout.VBox;
 import javafx.stage.Stage;
 
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
+import java.beans.PropertyChangeSupport;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Random;
 
 import static Action.SelectAction.selectInfoToData;
 import static Action.SelectAction.selectOne;
 
-
 public class Controller {
+    private String playerIDToTakePart = "";
+    private String teamIDToTakePart = "";
     private TableView tableview;
     private String myID = "0123456789";
-    public static String selectedID = "";
+    private static String selectedTeamID = "";
+    private static String selectedTeamEventName = "";
+    private static String selectedSoloEventName = "";
+    static PropertyChangeSupport propertyChangeSupportTeamID = new PropertyChangeSupport(selectedTeamID);
+    static PropertyChangeSupport propertyChangeSupportTeamEventName = new PropertyChangeSupport(selectedTeamID);
+    static PropertyChangeSupport propertyChangeSupportSoloEventName = new PropertyChangeSupport(selectedTeamID);
+
+    public static String getSelectedTeamEventName(){
+        return selectedTeamEventName;
+    }
+    public static void setSelectedTeamID(String newID){
+        String oldID = selectedTeamID;
+        selectedTeamID = newID;
+        propertyChangeSupportTeamID.firePropertyChange("YouSelectOneTeam",oldID,selectedTeamID);
+    }
+    public static void setSelectedTeamEventName(String newName){
+        String oldName = selectedTeamEventName;
+        selectedTeamEventName = newName;
+        propertyChangeSupportTeamEventName.firePropertyChange("YouSelectOneTeamEvent",oldName,selectedTeamEventName);
+    }
+    public static void setSelectedSoloEventName(String newName){
+        String oldName = selectedSoloEventName;
+        selectedSoloEventName = newName;
+        propertyChangeSupportSoloEventName.firePropertyChange("YouSelectOneTeamEvent",oldName,selectedSoloEventName);
+
+    }
 
     @FXML
     public Button found_team_btn;
@@ -212,20 +244,27 @@ public class Controller {
         regiBtn.setOnMouseClicked(new EventHandler<MouseEvent>() {
             @Override
             public void handle(MouseEvent event) {
-                Connection c;
-                try {
-                    c = DBConnect.connect();
-                    String sql = "insert into player values('"+ID.getText()+"','"+userName.getText()+"','"+sex.getText()+"',"+height.getText()+","+weight.getText()+");";
-                    System.out.println(sql);
-                    c.createStatement().executeUpdate(sql);
-                    myID = ID.getText();
-                    person_info_btn.fire();
-                    regiStage.close();
-                } catch (SQLException e) {
-                    e.printStackTrace();
-                    System.out.println("注册失败！");
-                    
-                }
+                String sql = "insert into player values('"+ID.getText()+"','"+userName.getText()+"','"+sex.getText()+"',"+height.getText()+","+weight.getText()+");";
+                boolean insertRs = InsertAction.insert(sql);
+                if(!insertRs)
+                    System.out.println("注册失败");
+                myID = ID.getText();
+                person_info_btn.fire();
+                regiStage.close();
+
+//                Connection c;
+//                try {
+//                    c = DBConnect.connect();
+//                    String sql = "insert into player values('"+ID.getText()+"','"+userName.getText()+"','"+sex.getText()+"',"+height.getText()+","+weight.getText()+");";
+//                    System.out.println(sql);
+//                    c.createStatement().executeUpdate(sql);
+//                    myID = ID.getText();
+//                    person_info_btn.fire();
+//                    regiStage.close();
+//                } catch (SQLException e) {
+//                    e.printStackTrace();
+//                    System.out.println("注册失败！");
+//                }
             }
         });
 
@@ -440,13 +479,121 @@ public class Controller {
         tableview = selectInfoToData(sql);
 
         center_pane.getChildren().clear();
-        center_pane.getChildren().add(tableview);
+        center_pane.add(tableview,0,0,4,10);
 
-        Label tip = new Label("双击队伍查看详情");
-        center_pane.add(tip,1,0,2,2);
+        Label tip = new Label("选中队伍ID为");
+        center_pane.add(tip,0,10,1,2);
+        TextField selectTeam = new TextField();
+        selectTeam.setEditable(false);
+        center_pane.add(selectTeam,1,10,2,2);
+        Button seeDetail = new Button("点击查看详情");
+        seeDetail.setDisable(true);
+        seeDetail.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                seeTeamDetail(selectTeam.getText());
+            }
+        });
+        center_pane.add(seeDetail,3,10,2,2);
+
+        //监听被选择的行是否发生变化
+        propertyChangeSupportTeamID.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                selectTeam.setText(selectedTeamID);
+                seeDetail.setDisable(false);
+            }
+        });
     }
+
+    private void seeTeamDetail(String ID){
+        if(ID.equals("")){
+            System.out.println("没有选择团队ID，非法操作");
+            return;
+        }
+        center_pane.getChildren().clear();
+        VBox vBox1 = new VBox();
+        VBox vBox2 = new VBox();
+        vBox1.setAlignment(Pos.CENTER);
+        vBox2.setAlignment(Pos.CENTER);
+        vBox1.setSpacing(10);
+        vBox2.setSpacing(10);
+        Label teammatesLabel = new Label("队伍成员");
+        vBox1.getChildren().add(teammatesLabel);
+        String sql = "select name,sex,height,weight from player where player.ID in (select playerID from play_for where teamID = '"+ID+"');";
+        tableview = selectInfoToData(sql);
+
+        center_pane.add(vBox1,0,0);
+        center_pane.add(tableview,0,1,1,3);
+        vBox2.getChildren().add(new Label("参赛情况"));
+        String sql2 = "select * from team_take_part_in where teamID='"+ID+"';";
+        center_pane.add(vBox2,0,4);
+        center_pane.add(selectInfoToData(sql2),0,5,1,3);
+        Button cansaiBtn = new Button("使用当前队伍报名参赛");
+        center_pane.add(new HBox(cansaiBtn),0,8);
+        cansaiBtn.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                teamIDToTakePart = ID;
+                take_team_event_btn.fire();
+            }
+        });
+        //如果当前用户不是队长
+        if(!SelectAction.selectOne("select captionid from team where id = '"+ID+"';").equals(myID)){
+            cansaiBtn.setDisable(true);
+            cansaiBtn.setText("您不是队长，无法报名");
+        }
+    }
+
     @FXML
     public void takeTeamEvent(ActionEvent actionEvent) {
+        String sql = "select * from event where type = 'team';";
+        tableview = selectInfoToData(sql);
+        center_pane.getChildren().clear();
+        VBox vBox = new VBox();
+        vBox.setAlignment(Pos.CENTER);
+        vBox.getChildren().add(new Label("团体赛一览"));
+        center_pane.add(tableview,0,1,4,8);
+        Label tip = new Label("选中的比赛项目为");
+        center_pane.add(tip,0,9,1,2);
+        TextField selectEvent = new TextField();
+        selectEvent.setEditable(false);
+        center_pane.add(selectEvent,1,9,2,2);
+        Button rollBtn = new Button("点击报名");
+        if(teamIDToTakePart.equals(""))
+            rollBtn.setText("请先到队伍界面选择队伍");
+        rollBtn.setDisable(true);
+        rollBtn.setOnMouseClicked(new EventHandler<MouseEvent>() {
+            @Override
+            public void handle(MouseEvent event) {
+                Alert alert = new Alert(Alert.AlertType.CONFIRMATION,"确认报名么？",new ButtonType("取消", ButtonBar.ButtonData.NO),
+                        new ButtonType("确认", ButtonBar.ButtonData.YES));
+                alert.setTitle("报名团体赛");
+                alert.setHeaderText(null);
+//                alert.setContentText();
+                Optional<ButtonType> buttonType = alert.showAndWait();
+                if(buttonType.get().getButtonData().equals(ButtonBar.ButtonData.YES)){
+                    System.out.println("确认了报名团体赛");
+                    String sql = "insert into TEAM_TAKE_PART_IN values ('"+selectedTeamID+"','"+selectedTeamEventName+"',-1);";
+                    boolean rollSuccess = InsertAction.insert(sql);
+                    if(!rollSuccess){
+                        System.out.println("报名失败");
+                    }
+                }else{
+                    System.out.println("您取消了报名");
+                }
+            }
+        });
+        center_pane.add(rollBtn,3,8,2,2);
+        //监听被选择的行是否发生变化
+        propertyChangeSupportTeamEventName.addPropertyChangeListener(new PropertyChangeListener() {
+            @Override
+            public void propertyChange(PropertyChangeEvent evt) {
+                selectEvent.setText(selectedTeamEventName);
+                if(!teamIDToTakePart.equals(""))
+                    rollBtn.setDisable(false);
+            }
+        });
     }
 
 
